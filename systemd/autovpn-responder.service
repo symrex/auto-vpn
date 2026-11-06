@@ -1,0 +1,42 @@
+[Unit]
+Description=autoVPN responder — OpenVPN management prompt responder (mode C)
+Documentation=file:/opt/autovpn/README.md
+#Catches all prompts (even unknown ones) on the management socket; the token
+#is minted per prompt. Starts before openvpn, waits for the socket in a
+#resilience loop (openvpn creates it when connecting).
+Before=autovpn.service
+
+[Service]
+Type=simple
+ExecStart=/opt/autovpn/scripts/mgmt_responder.sh
+# NO EnvironmentFile: the credentials must not land in the process environment
+# (/proc/<pid>/environ). The responder reads them from the root-only .env by path.
+Environment=MGMT_SOCKET=/run/autovpn/mgmt.sock
+Environment=PROJECT_DIR=/opt/autovpn
+Environment=AUTOVPN_ENV=/opt/autovpn/.env
+RuntimeDirectory=autovpn
+RuntimeDirectoryMode=0700
+Restart=always
+RestartSec=5
+User=root
+Group=root
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/run/autovpn
+# The responder only talks to the unix socket: no network capability at all.
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

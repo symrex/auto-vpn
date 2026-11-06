@@ -1,0 +1,22 @@
+[Unit]
+Description=autoVPN watchdog — tunnel health check
+
+[Service]
+Type=oneshot
+ExecStart=/opt/autovpn/scripts/watchdog.sh
+Environment=PROJECT_DIR=/opt/autovpn
+# Hardening: health checks only (systemctl over AF_UNIX, ip over AF_NETLINK).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+SystemCallArchitectures=native
+

@@ -1,0 +1,57 @@
+[Unit]
+Description=autoVPN — OpenVPN client for an MFA server (auto-TOTP)
+Wants=network-online.target autovpn-responder.service
+After=network-online.target autovpn-responder.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+# OpenVPN runs in the foreground (Type=simple); logs go to the journal via stdout.
+# ExecStartPre in this unit: 1) auth directory, 2) auth file with a fresh TOTP
+# (mode A; mode B sets auth-user-pass-verify via-env in the config).
+# route-up/route-pre-down in the config rebuild the file on EVERY connect ->
+# token age < 30 s. Mode C (autovpn-responder.service) catches unknown prompts.
+# RuntimeDirectory: systemd creates /run/autovpn BEFORE namespacing (LXC-safe;
+# an ExecStartPre install -d is too late for that, ReadWritePaths needs the path)
+RuntimeDirectory=autovpn
+RuntimeDirectoryMode=0700
+ExecStartPre=/opt/autovpn/scripts/totp_auth.sh
+ExecStart=/usr/sbin/openvpn --config ${OPENVPN_CONFIG}
+# NO EnvironmentFile on purpose: systemd injects every EnvironmentFile key into
+# the process environment, where it is visible in /proc/<pid>/environ and
+# inherited by every child (route scripts, plugins). autovpn.py reads the
+# secrets from the root-only .env by PATH, so the environment stays secret-free.
+# Only non-secret paths are exported here.
+Environment=OPENVPN_CONFIG=/opt/autovpn/openvpn-client.ovpn
+Environment=PROJECT_DIR=/opt/autovpn
+Environment=AUTOVPN_ENV=/opt/autovpn/.env
+Restart=always
+RestartSec=10
+User=root
+Group=root
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# /var/log was never written to; the tunnel state lives in /run/autovpn only.
+ReadWritePaths=/run/autovpn
+# root is required (tun device), so the privilege level cannot be reduced
+# further; the bounding set shrinks what root may do, the sandbox below removes
+# filesystem and namespace access.
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_SETUID CAP_SETGID CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
+DeviceAllow=/dev/net/tun rw
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+SystemCallArchitectures=native
+# Many providers disconnect after ~48h: systemd reconnect covers that
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target

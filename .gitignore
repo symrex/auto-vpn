@@ -1,0 +1,27 @@
+# Secrets — never commit.
+# The real .env holds VPN_USER / VPN_PASSWORD / TOTP_SECRET; .env.* catches
+# backups like .env.bak. The negations below MUST come after these patterns:
+# git applies the LAST matching rule, so a negation placed above is overridden.
+.env
+.env.*
+!/.env.example
+
+# OpenVPN config contains tls-auth static key + CA => sensitive
+*.ovpn
+!*.ovpn.example
+openvpn-client.ovpn
+
+# Key material, certs, logs, run-time and temp files
+*.key
+*.pem
+*.p12
+*.pkcs12
+*.log
+*.tmp
+/run/
+auth*
+
+# Python / macOS
+__pycache__/
+*.pyc
+.DS_Store

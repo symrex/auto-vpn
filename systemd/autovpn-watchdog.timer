@@ -1,0 +1,11 @@
+[Unit]
+Description=autoVPN watchdog timer — checks every 60s whether the VPN tunnel is up
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=60
+AccuracySec=5s
+Unit=autovpn-watchdog.service
+
+[Install]
+WantedBy=timers.target

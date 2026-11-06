@@ -1,0 +1,24 @@
+[Unit]
+Description=autoVPN env-reload — restart VPN on .env change
+
+[Service]
+Type=oneshot
+ExecStart=/opt/autovpn/scripts/env-reload.sh
+Environment=PROJECT_DIR=/opt/autovpn
+# Hardening: reads the non-secret VPN_AUTH_MODE key from the root-only .env and
+# talks to systemd only. No network, no writes to the filesystem.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/opt/autovpn
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+SystemCallArchitectures=native
+

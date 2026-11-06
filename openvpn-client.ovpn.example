@@ -1,0 +1,49 @@
+# Placeholder template. The REAL config comes from your provider
+# (typically from its VPN setup guide page).
+# The real file is named openvpn-client.ovpn, is 600 root and is NOT committed
+# (it contains the tls-auth static key + CA).
+client
+nobind
+persist-tun
+persist-key
+remote vpn1.example.org 1194 udp4
+remote vpn2.example.org 1194 udp4
+remote-random
+
+# --- Auth fallback chain ------------------------------------------------------
+# IMPORTANT (OpenVPN 2.6, verified from the source code misc.c): the answer to
+# static-challenge can NOT be read from the auth-user-pass file.
+# OpenVPN fetches it exclusively via the management interface
+# ('>PASSWORD:Need ... SC:' -> 'password Auth SCRV1:b64(pw):b64(token)').
+# That is why the default is: 'auth-user-pass' WITHOUT a file path + management socket;
+# the autovpn-responder (mode C) answers the query with a fresh token.
+auth-user-pass
+static-challenge "Enter your OTP:" 1
+management /run/autovpn/mgmt.sock unix
+management-query-passwords
+
+# Mode A (pass-file, user+pass only — usable without a challenge): use instead
+#   'auth-user-pass /run/autovpn/auth.txt' + route-up refresh:
+#route-up /opt/autovpn/scripts/totp_auth.sh
+#route-pre-down /opt/autovpn/scripts/totp_auth.sh
+
+# Mode B (if needed): server-side verification via environment variables.
+#auth-user-pass-verify /opt/autovpn/scripts/totp_auth.sh via-env
+
+# The socket lives in /run/autovpn (700 root) => root-exclusive, no management password.
+
+# --- Selective routing (only if the host shares the tunnel with services) -----
+# Remove the provider's 'redirect-gateway' first, otherwise the host's default
+# route moves into the tunnel and published services become unreachable from
+# outside. Declarative only: no route scripts, no 'script-security 2'.
+# Details and verification: docs/MANUAL.md §8.
+#route-nopull
+#route 192.0.2.0    255.255.255.0   # one line per target prefix
+#route 198.51.100.0 255.255.255.0
+#mssfix 1400                        # bridge MTU 1500 > tunnel MTU
+
+remote-cert-tls server
+auth-nocache
+reneg-sec 0
+# <ca> ... </ca>  <- take from the real provider config
+# <tls-auth> ... </tls-auth>  <- take from the real provider config, key-direction 1

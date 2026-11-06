@@ -1,0 +1,9 @@
+[Unit]
+Description=autoVPN env path — watches /opt/autovpn/.env for changes
+
+[Path]
+PathModified=/opt/autovpn/.env
+Unit=autovpn-env.service
+
+[Install]
+WantedBy=multi-user.target
